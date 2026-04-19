@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volt Scheduler - Dashboard</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/style.css">
+    <meta name="csrf-token" th:content="${_csrf.token}">
+    <meta name="csrf-header" th:content="${_csrf.headerName}">
+    <script>
+        // Dark theme toggle
+        const htmlElem = document.documentElement;
+        const theme = localStorage.getItem('theme') || 'light';
+        htmlElem.setAttribute('data-theme', theme);
+    </script>
+</head>
+<body class="dashboard-shell" th:attr="data-theme=${session.theme ?: 'light'}">
+<div class="theme-toggle-wrapper">
+    <button id="theme-toggle" class="button button-icon theme-toggle-floating" title="Toggle dark mode">
+        <span id="theme-icon">🌙</span>
+    </button>
+</div>
+<div class="hamburger-fixed-wrapper">
+    <div class="hamburger-menu-wrapper">
+        <button id="hamburger-menu-btn" class="button button-icon hamburger-btn" title="Account menu">
+            <span>☰</span>
+        </button>
+        <div id="hamburger-menu" class="hamburger-menu">
+            <button id="hamburger-menu-close-btn" class="button button-icon hamburger-btn hamburger-drawer-toggle" title="Toggle navigation">
+                <span>☰</span>
+            </button>
+            <div class="hamburger-panel-header">
+                <span class="hamburger-header-title">Navigation</span>
+            </div>
+            <button id="change-password-btn" class="hamburger-item">Change Password</button>
+            <button id="change-username-btn" class="hamburger-item">Update Username</button>
+            <button id="delete-account-from-menu-btn" class="hamburger-item danger">Delete Account</button>
+        </div>
+    </div>
+    <div id="hamburger-backdrop" class="hamburger-backdrop"></div>
+</div>
+<div class="page-gradient"></div>
+<main class="dashboard-layout">
+    <header class="hero card">
+        <div>
+            <p class="eyebrow">Volt Scheduler</p>
+            <h1 th:text="|Welcome, ${username}|">Welcome</h1>
+            <div class="month-year-display" id="monthYearDisplay">
+                <span id="monthYearText"></span>
+            </div>
+            <p class="lead">Organize your schedule with events, times, and notes. All your events are securely stored.</p>
+        </div>
+        <div class="header-actions">
+            <form th:action="@{/logout}" method="post" style="display: inline;">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button class="button button-secondary" type="submit">Log out</button>
+            </form>
+        </div>
+    </header>
+
+    <p class="alert success" th:if="${successMessage}" th:text="${successMessage}"></p>
+
+    <section class="dashboard-grid">
+        <section class="card panel">
+            <div class="card-header">
+                <p class="eyebrow">New event</p>
+                <h2>Add something to your calendar</h2>
+            </div>
+
+            <form class="stack" th:action="@{/events}" th:object="${eventForm}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+                <label>
+                    <span>Event title</span>
+                    <input type="text" th:field="*{title}" placeholder="Team dinner, exam, birthday..." required>
+                    <small class="field-error" th:if="${#fields.hasErrors('title')}" th:errors="*{title}"></small>
+                </label>
+
+                <label>
+                    <span>Date</span>
+                    <input type="text" id="eventDatePicker" th:field="*{eventDate}" required placeholder="Select a date">
+                    <small class="field-error" th:if="${#fields.hasErrors('eventDate')}" th:errors="*{eventDate}"></small>
+                </label>
+
+                <div class="two-column">
+                    <label>
+                        <span>Start time</span>
+                        <input type="text" id="startTimePicker" th:field="*{startTime}" placeholder="Select start time">
+                    </label>
+
+                    <label>
+                        <span>End time</span>
+                        <input type="text" id="endTimePicker" th:field="*{endTime}" placeholder="Select end time">
+                        <small class="field-error" th:if="${#fields.hasErrors('endTime')}" th:errors="*{endTime}"></small>
+                    </label>
+                </div>
+
+                <label>
+                    <span>Description</span>
+                    <textarea th:field="*{description}" rows="5" placeholder="Optional notes"></textarea>
+                    <small class="field-error" th:if="${#fields.hasErrors('description')}" th:errors="*{description}"></small>
+                </label>
+
+                <button class="button button-primary" type="submit">Save event</button>
+            </form>
+        </section>
+
+        <section class="card panel">
+            <div class="card-header">
+                <p class="eyebrow">Upcoming events</p>
+                <h2 th:text="|${#lists.size(events)} planned|">0 planned</h2>
+            </div>
+
+            <div class="cal-nav">
+                <button class="button button-icon cal-nav-btn" id="calPrev" title="Previous month">&#8249;</button>
+                <span class="cal-month-label" id="calMonthLabel"></span>
+                <button class="button button-icon cal-nav-btn" id="calNext" title="Next month">&#8250;</button>
+            </div>
+
+            <div class="cal-grid" id="calGrid">
+                <div class="cal-dow">Sun</div>
+                <div class="cal-dow">Mon</div>
+                <div class="cal-dow">Tue</div>
+                <div class="cal-dow">Wed</div>
+                <div class="cal-dow">Thu</div>
+                <div class="cal-dow">Fri</div>
+                <div class="cal-dow">Sat</div>
+            </div>
+        </section>
+    </section>
+
+    <!-- Event detail modal -->
+    <div id="eventDetailBackdrop" class="event-detail-backdrop hidden">
+        <div class="event-detail-card">
+            <button class="button button-icon event-detail-close" id="eventDetailClose">&#x2715;</button>
+            <p class="eyebrow">Event details</p>
+            <h2 class="event-detail-title" id="detailTitle"></h2>
+            <p class="event-detail-meta" id="detailDate"></p>
+            <p class="event-detail-meta" id="detailTime"></p>
+            <p class="event-detail-desc" id="detailDesc"></p>
+            <div class="event-detail-actions">
+                <a class="button button-secondary" id="detailEditBtn" href="#">Edit</a>
+                <form id="detailDeleteForm" method="post">
+                    <input type="hidden" name="_csrf" id="detailCsrfToken">
+                    <button class="button button-danger" type="submit">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer class="site-footer">
+    <p>&copy; <span id="footerYear"></span> Elijah Richter. All rights reserved.</p>
+</footer>
+
+<script th:inline="javascript">
+/*<![CDATA[*/
+var eventsData = [
+/*[# th:each="ev : ${events}"]*/{
+    id: [[${ev.id}]],
+    title: [[${ev.title}]],
+    date: [[${#temporals.format(ev.eventDate, 'yyyy-MM-dd')}]],
+    startTime: [[${ev.startTime != null ? #temporals.format(ev.startTime, 'h:mm a') : ''}]],
+    endTime: [[${ev.endTime != null ? #temporals.format(ev.endTime, 'h:mm a') : ''}]],
+    description: [[${ev.description ?: ''}]]
+},
+/*[/]*/
+];
+/*]]>*/
+</script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/index.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Theme toggle functionality
+    const themeToggle = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    const htmlElem = document.documentElement;
+
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = htmlElem.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            htmlElem.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        });
+    }
+
+    function updateThemeIcon(theme) {
+        if (themeIcon) {
+            themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+        }
+    }
+
+    // Initialize theme icon
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    updateThemeIcon(savedTheme);
+
+    // Footer year
+    const footerYear = document.getElementById('footerYear');
+    if (footerYear) footerYear.textContent = new Date().getFullYear();
+
+    // Update month and year display
+    function updateMonthYearDisplay() {
+        const monthYearText = document.getElementById('monthYearText');
+        if (monthYearText) {
+            const now = new Date();
+            const options = { month: 'long', year: 'numeric' };
+            const monthYear = now.toLocaleDateString('en-US', options);
+            monthYearText.textContent = monthYear;
+        }
+    }
+    updateMonthYearDisplay();
+
+    // Initialize Flatpickr for modern date picker
+    const eventDatePicker = document.getElementById('eventDatePicker');
+    if (eventDatePicker) {
+        flatpickr('#eventDatePicker', {
+            dateFormat: 'Y-m-d',
+            minDate: 'today',
+            theme: savedTheme === 'dark' ? 'dark' : 'light'
+        });
+    }
+
+    // Initialize Flatpickr for time pickers
+    const startTimePicker = document.getElementById('startTimePicker');
+    if (startTimePicker) {
+        flatpickr('#startTimePicker', {
+            enableTime: true,
+            noCalendar: true,
+                enableSeconds: false,
+                dateFormat: 'H:i',
+                altInput: true,
+                altFormat: 'h:i K',
+                time_24hr: false,
+            theme: savedTheme === 'dark' ? 'dark' : 'light'
+        });
+    }
+
+    const endTimePicker = document.getElementById('endTimePicker');
+    if (endTimePicker) {
+        flatpickr('#endTimePicker', {
+            enableTime: true,
+            noCalendar: true,
+                enableSeconds: false,
+                dateFormat: 'H:i',
+                altInput: true,
+                altFormat: 'h:i K',
+                time_24hr: false,
+            theme: savedTheme === 'dark' ? 'dark' : 'light'
+        });
+    }
+
+    // Hamburger drawer functionality
+    const hamburgerMenuBtn = document.getElementById('hamburger-menu-btn');
+    const hamburgerMenuCloseBtn = document.getElementById('hamburger-menu-close-btn');
+    const hamburgerMenu = document.getElementById('hamburger-menu');
+    const hamburgerBackdrop = document.getElementById('hamburger-backdrop');
+
+    const closeHamburgerMenu = () => {
+        if (!hamburgerMenu || !hamburgerBackdrop) {
+            return;
+        }
+        hamburgerMenu.classList.remove('is-open');
+        hamburgerBackdrop.classList.remove('is-open');
+    };
+
+    const openHamburgerMenu = () => {
+        if (!hamburgerMenu || !hamburgerBackdrop) {
+            return;
+        }
+        hamburgerMenu.classList.add('is-open');
+        hamburgerBackdrop.classList.add('is-open');
+    };
+
+    if (hamburgerMenuBtn) {
+        hamburgerMenuBtn.addEventListener('click', () => {
+            if (hamburgerMenu.classList.contains('is-open')) {
+                closeHamburgerMenu();
+            } else {
+                openHamburgerMenu();
+            }
+        });
+    }
+
+    if (hamburgerMenuCloseBtn) {
+        hamburgerMenuCloseBtn.addEventListener('click', () => {
+            if (hamburgerMenu.classList.contains('is-open')) {
+                closeHamburgerMenu();
+            } else {
+                openHamburgerMenu();
+            }
+        });
+    }
+
+    if (hamburgerBackdrop) {
+        hamburgerBackdrop.addEventListener('click', closeHamburgerMenu);
+    }
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeHamburgerMenu();
+            closeEventDetail();
+        }
+    });
+
+    // Change password button
+    const changePasswordBtn = document.getElementById('change-password-btn');
+    if (changePasswordBtn) {
+        changePasswordBtn.addEventListener('click', () => {
+            closeHamburgerMenu();
+            window.location.href = '/account/change-password';
+        });
+    }
+
+    // Change username button
+    const changeUsernameBtn = document.getElementById('change-username-btn');
+    if (changeUsernameBtn) {
+        changeUsernameBtn.addEventListener('click', () => {
+            closeHamburgerMenu();
+            window.location.href = '/account/change-username';
+        });
+    }
+
+    // Delete account button
+    const deleteAccountFromMenuBtn = document.getElementById('delete-account-from-menu-btn');
+    if (deleteAccountFromMenuBtn) {
+        deleteAccountFromMenuBtn.addEventListener('click', () => {
+            closeHamburgerMenu();
+            window.location.href = '/account/delete';
+        });
+    }
+
+    // ---- Calendar ----
+    let calYear = new Date().getFullYear();
+    let calMonth = new Date().getMonth();
+    const MONTH_NAMES = ['January','February','March','April','May','June',
+        'July','August','September','October','November','December'];
+
+    function buildCalendar(year, month) {
+        const grid = document.getElementById('calGrid');
+        if (!grid) return;
+        document.getElementById('calMonthLabel').textContent = MONTH_NAMES[month] + ' ' + year;
+        // Remove old day cells (keep first 7 DOW headers)
+        Array.from(grid.children).slice(7).forEach(k => k.remove());
+        // Map events by day number for this month
+        const evMap = {};
+        eventsData.forEach(function(ev) {
+            const d = new Date(ev.date + 'T00:00:00');
+            if (d.getFullYear() === year && d.getMonth() === month) {
+                const day = d.getDate();
+                if (!evMap[day]) evMap[day] = [];
+                evMap[day].push(ev);
+            }
+        });
+        const firstDow = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const today = new Date();
+        const isThisMonth = today.getFullYear() === year && today.getMonth() === month;
+        // Blank offset cells
+        for (let i = 0; i < firstDow; i++) {
+            const blank = document.createElement('div');
+            blank.className = 'cal-day cal-day-blank';
+            grid.appendChild(blank);
+        }
+        // Day cells
+        for (let d = 1; d <= daysInMonth; d++) {
+            const cell = document.createElement('div');
+            cell.className = 'cal-day';
+            if (isThisMonth && d === today.getDate()) cell.classList.add('cal-day-today');
+            const num = document.createElement('span');
+            num.className = 'cal-day-num';
+            num.textContent = d;
+            cell.appendChild(num);
+            if (evMap[d]) {
+                evMap[d].forEach(function(ev) {
+                    const chip = document.createElement('button');
+                    chip.className = 'cal-event-chip';
+                    chip.textContent = ev.title;
+                    chip.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        openEventDetail(ev);
+                    });
+                    cell.appendChild(chip);
+                });
+            }
+            grid.appendChild(cell);
+        }
+    }
+
+    const calPrevBtn = document.getElementById('calPrev');
+    const calNextBtn = document.getElementById('calNext');
+    if (calPrevBtn) {
+        calPrevBtn.addEventListener('click', function() {
+            calMonth--;
+            if (calMonth < 0) { calMonth = 11; calYear--; }
+            buildCalendar(calYear, calMonth);
+        });
+    }
+    if (calNextBtn) {
+        calNextBtn.addEventListener('click', function() {
+            calMonth++;
+            if (calMonth > 11) { calMonth = 0; calYear++; }
+            buildCalendar(calYear, calMonth);
+        });
+    }
+    buildCalendar(calYear, calMonth);
+
+    // ---- Event detail modal ----
+    const eventDetailBackdrop = document.getElementById('eventDetailBackdrop');
+    const eventDetailCloseBtn = document.getElementById('eventDetailClose');
+
+    function openEventDetail(ev) {
+        document.getElementById('detailTitle').textContent = ev.title;
+        const d = new Date(ev.date + 'T00:00:00');
+        document.getElementById('detailDate').textContent =
+            d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const timeEl = document.getElementById('detailTime');
+        if (ev.startTime || ev.endTime) {
+            let t = '';
+            if (ev.startTime && ev.endTime) t = ev.startTime + ' \u2013 ' + ev.endTime;
+            else if (ev.startTime) t = ev.startTime;
+            else t = 'Ends ' + ev.endTime;
+            timeEl.textContent = t;
+            timeEl.style.display = '';
+        } else {
+            timeEl.style.display = 'none';
+        }
+        const descEl = document.getElementById('detailDesc');
+        if (ev.description) {
+            descEl.textContent = ev.description;
+            descEl.style.display = '';
+        } else {
+            descEl.style.display = 'none';
+        }
+        document.getElementById('detailEditBtn').href = '/events/' + ev.id + '/edit';
+        document.getElementById('detailDeleteForm').action = '/events/' + ev.id + '/delete';
+        document.getElementById('detailCsrfToken').value =
+            document.querySelector('meta[name="csrf-token"]').content;
+        eventDetailBackdrop.classList.remove('hidden');
+    }
+
+    function closeEventDetail() {
+        if (eventDetailBackdrop) eventDetailBackdrop.classList.add('hidden');
+    }
+
+    if (eventDetailCloseBtn) {
+        eventDetailCloseBtn.addEventListener('click', closeEventDetail);
+    }
+    if (eventDetailBackdrop) {
+        eventDetailBackdrop.addEventListener('click', function(e) {
+            if (e.target === eventDetailBackdrop) closeEventDetail();
+        });
+    }
+});
+</script>
+</body>
+</html>

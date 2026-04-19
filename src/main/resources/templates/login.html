@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volt Scheduler - Login</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script>
+        // Dark theme toggle
+        const htmlElem = document.documentElement;
+        const theme = localStorage.getItem('theme') || 'light';
+        htmlElem.setAttribute('data-theme', theme);
+    </script>
+</head>
+<body class="auth-shell" th:attr="data-theme=${session.theme ?: 'light'}">
+<div class="theme-toggle-wrapper">
+    <button id="theme-toggle" class="button button-icon theme-toggle-floating" title="Toggle dark mode">
+        <span id="theme-icon">🌙</span>
+    </button>
+</div>
+<main class="auth-layout">
+    <section class="brand-panel">
+        <div>
+            <p class="eyebrow">Volt Scheduler</p>
+            <h1>Keep events in one secure place.</h1>
+            <p class="lead">A focused personal calendar for dates, time windows, and event notes.</p>
+        </div>
+        <div class="brand-points">
+            <span>Encrypted passwords</span>
+            <span>PostgreSQL storage</span>
+            <span>Simple event planning</span>
+        </div>
+    </section>
+
+    <section class="card auth-card">
+        <div class="card-header">
+            <p class="eyebrow">Sign in</p>
+            <h2>Welcome back</h2>
+        </div>
+
+        <p class="alert success" th:if="${successMessage}" th:text="${successMessage}"></p>
+        <p class="alert success" th:if="${param.logout}">You have been signed out.</p>
+        <p class="alert error" th:if="${param.error}">Invalid username or password.</p>
+
+        <form class="stack" th:action="@{/login}" method="post">
+            <label>
+                <span>Username</span>
+                <input type="text" name="username" autocomplete="username" required>
+            </label>
+
+            <label>
+                <span>Password</span>
+                <input type="password" name="password" autocomplete="current-password" required>
+            </label>
+
+            <button class="button button-primary" type="submit">Sign in</button>
+        </form>
+
+        <p class="muted">New here? <a th:href="@{/register}">Create an account</a>.</p>
+    </section>
+</main>
+
+<footer class="site-footer">
+    <p>&copy; <script>document.write(new Date().getFullYear())</script> Elijah Richter. All rights reserved.</p>
+</footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Theme toggle functionality
+    const themeToggle = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    const htmlElem = document.documentElement;
+
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = htmlElem.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            htmlElem.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        });
+    }
+
+    function updateThemeIcon(theme) {
+        if (themeIcon) {
+            themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+        }
+    }
+
+    // Initialize theme icon
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    updateThemeIcon(savedTheme);
+});
+</script></body>
+</html>
