@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
@@ -26,12 +27,15 @@ public class DashboardController {
     }
 
     @GetMapping("/events")
-    public String dashboard(Model model, Principal principal) {
+    public String dashboard(Model model,
+                            Principal principal,
+                            @RequestParam(value = "panel", required = false) String panel) {
         if (!model.containsAttribute("eventForm")) {
             model.addAttribute("eventForm", new CalendarEventForm());
         }
         // Reads the current user's events from PostgreSQL and puts them into the Thymeleaf model.
         populateDashboard(model, principal.getName());
+        model.addAttribute("activePanel", panel == null ? "events" : panel);
         return "dashboard";
     }
 
@@ -57,9 +61,11 @@ public class DashboardController {
     public String editEvent(@PathVariable Long eventId, Model model, Principal principal) {
         // Loads a single event row that belongs to the signed-in user.
         CalendarEvent event = eventService.getEventForUser(eventId, principal.getName());
-        model.addAttribute("eventId", event.getId());
+        model.addAttribute("editingEventId", event.getId());
         model.addAttribute("eventForm", eventService.toForm(event));
-        return "edit-event";
+        model.addAttribute("activePanel", "events");
+        populateDashboard(model, principal.getName());
+        return "dashboard";
     }
 
     @PostMapping("/events/{eventId}")
@@ -71,8 +77,10 @@ public class DashboardController {
                               RedirectAttributes redirectAttributes) {
         validateTimeRange(eventForm, bindingResult);
         if (bindingResult.hasErrors()) {
-            model.addAttribute("eventId", eventId);
-            return "edit-event";
+            model.addAttribute("editingEventId", eventId);
+            model.addAttribute("activePanel", "events");
+            populateDashboard(model, principal.getName());
+            return "dashboard";
         }
 
         // JPA updates the existing events row inside EventService's transaction.

@@ -17,6 +17,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -32,20 +33,28 @@ public class AuthController {
     }
 
     @GetMapping("/login")
-    public String login(Authentication authentication) {
+    public String login(Authentication authentication,
+                        Model model,
+                        @RequestParam(value = "view", required = false) String view) {
         if (isAuthenticated(authentication)) {
             return "redirect:/events";
         }
+
+        if (!model.containsAttribute("registrationForm")) {
+            model.addAttribute("registrationForm", new RegistrationForm());
+        }
+
+        String authView = "register".equalsIgnoreCase(view) ? "register" : "login";
+        model.addAttribute("authView", authView);
         return "login";
     }
 
     @GetMapping("/register")
-    public String registerForm(Authentication authentication, Model model) {
+    public String registerForm(Authentication authentication) {
         if (isAuthenticated(authentication)) {
             return "redirect:/events";
         }
-        model.addAttribute("registrationForm", new RegistrationForm());
-        return "register";
+        return "redirect:/login?view=register";
     }
 
     @PostMapping("/register")
@@ -61,7 +70,10 @@ public class AuthController {
         }
 
         if (bindingResult.hasErrors()) {
-            return "register";
+            redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.registrationForm", bindingResult);
+            redirectAttributes.addFlashAttribute("registrationForm", registrationForm);
+            redirectAttributes.addFlashAttribute("authView", "register");
+            return "redirect:/login?view=register";
         }
 
         // The controller delegates persistence work to UserService so validation and database writes
@@ -81,7 +93,7 @@ public class AuthController {
         if (!isAuthenticated(authentication)) {
             return "redirect:/login";
         }
-        return "change-password";
+        return "redirect:/events?panel=password";
     }
 
     @PostMapping("/account/change-password")
@@ -108,7 +120,7 @@ public class AuthController {
         if (!isAuthenticated(authentication)) {
             return "redirect:/login";
         }
-        return "change-username";
+        return "redirect:/events?panel=username";
     }
 
     @PostMapping("/account/change-username")
@@ -137,7 +149,7 @@ public class AuthController {
         if (!isAuthenticated(authentication)) {
             return "redirect:/login";
         }
-        return "delete-account";
+        return "redirect:/events?panel=delete";
     }
 
     @PostMapping("/account/delete")

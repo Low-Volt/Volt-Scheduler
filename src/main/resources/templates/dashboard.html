@@ -34,6 +34,8 @@
             <div class="hamburger-panel-header">
                 <span class="hamburger-header-title">Navigation</span>
             </div>
+            <button id="view-dashboard-btn" class="hamburger-item">Dashboard</button>
+            <button id="view-account-btn" class="hamburger-item">Account Settings</button>
             <button id="change-password-btn" class="hamburger-item">Change Password</button>
             <button id="change-username-btn" class="hamburger-item">Update Username</button>
             <button id="delete-account-from-menu-btn" class="hamburger-item danger">Delete Account</button>
@@ -43,6 +45,7 @@
 </div>
 <div class="page-gradient"></div>
 <main class="dashboard-layout">
+    <input type="hidden" id="activePanel" th:value="${activePanel ?: 'events'}">
     <header class="hero card">
         <div>
             <p class="eyebrow">Volt Scheduler</p>
@@ -62,14 +65,14 @@
 
     <p class="alert success" th:if="${successMessage}" th:text="${successMessage}"></p>
 
-    <section class="dashboard-grid">
-        <section class="card panel">
+    <section class="dashboard-grid" id="dashboardGrid">
+        <section class="card panel" id="eventEditorSection">
             <div class="card-header">
-                <p class="eyebrow">New event</p>
-                <h2>Add something to your calendar</h2>
+                <p class="eyebrow" th:text="${editingEventId != null} ? 'Edit event' : 'New event'">New event</p>
+                <h2 th:text="${editingEventId != null} ? 'Update details' : 'Add something to your calendar'">Add something to your calendar</h2>
             </div>
 
-            <form class="stack" th:action="@{/events}" th:object="${eventForm}" method="post">
+            <form class="stack" th:if="${editingEventId == null}" th:action="@{/events}" th:object="${eventForm}" method="post">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 
                 <label>
@@ -105,9 +108,49 @@
 
                 <button class="button button-primary" type="submit">Save event</button>
             </form>
+
+            <form class="stack" th:if="${editingEventId != null}" th:action="@{/events/{eventId}(eventId=${editingEventId})}" th:object="${eventForm}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+                <label>
+                    <span>Event title</span>
+                    <input type="text" th:field="*{title}" placeholder="Team dinner, exam, birthday..." required>
+                    <small class="field-error" th:if="${#fields.hasErrors('title')}" th:errors="*{title}"></small>
+                </label>
+
+                <label>
+                    <span>Date</span>
+                    <input type="text" id="eventDatePickerEdit" th:field="*{eventDate}" required placeholder="Select a date">
+                    <small class="field-error" th:if="${#fields.hasErrors('eventDate')}" th:errors="*{eventDate}"></small>
+                </label>
+
+                <div class="two-column">
+                    <label>
+                        <span>Start time</span>
+                        <input type="text" id="startTimePickerEdit" th:field="*{startTime}" placeholder="Select start time">
+                    </label>
+
+                    <label>
+                        <span>End time</span>
+                        <input type="text" id="endTimePickerEdit" th:field="*{endTime}" placeholder="Select end time">
+                        <small class="field-error" th:if="${#fields.hasErrors('endTime')}" th:errors="*{endTime}"></small>
+                    </label>
+                </div>
+
+                <label>
+                    <span>Description</span>
+                    <textarea th:field="*{description}" rows="5" placeholder="Optional notes"></textarea>
+                    <small class="field-error" th:if="${#fields.hasErrors('description')}" th:errors="*{description}"></small>
+                </label>
+
+                <div class="button-group">
+                    <button class="button button-primary" type="submit">Save changes</button>
+                    <a class="button button-secondary" th:href="@{/events}">Cancel edit</a>
+                </div>
+            </form>
         </section>
 
-        <section class="card panel">
+        <section class="card panel" id="calendarSection">
             <div class="card-header">
                 <p class="eyebrow">Upcoming events</p>
                 <h2 th:text="|${#lists.size(events)} planned|">0 planned</h2>
@@ -129,6 +172,71 @@
                 <div class="cal-dow">Sat</div>
             </div>
         </section>
+    </section>
+
+    <section class="card panel account-panel" id="accountSection">
+        <div class="card-header">
+            <p class="eyebrow">Account settings</p>
+            <h2>Manage your credentials and profile</h2>
+        </div>
+
+        <details class="account-item" id="panel-password">
+            <summary>Change password</summary>
+            <div id="passwordError" class="alert error hidden"></div>
+            <div id="passwordSuccess" class="alert success hidden"></div>
+            <form id="changePasswordForm" class="stack">
+                <label>
+                    <span>Current password</span>
+                    <input type="password" id="currentPassword" name="currentPassword" required autocomplete="current-password">
+                </label>
+                <label>
+                    <span>New password</span>
+                    <input type="password" id="newPassword" name="newPassword" required autocomplete="new-password">
+                    <small class="form-hint">Use at least 8 characters, 1 uppercase letter, 1 special character, and no spaces.</small>
+                    <div class="password-strength" id="changePasswordStrength" aria-live="polite">
+                        <div class="password-strength-track">
+                            <div class="password-strength-fill" id="changePasswordStrengthFill"></div>
+                        </div>
+                        <small class="password-strength-label" id="changePasswordStrengthLabel">Password strength: --</small>
+                    </div>
+                </label>
+                <label>
+                    <span>Confirm new password</span>
+                    <input type="password" id="confirmPassword" name="confirmPassword" required autocomplete="new-password">
+                </label>
+                <button type="submit" class="button button-primary">Change password</button>
+            </form>
+        </details>
+
+        <details class="account-item" id="panel-username">
+            <summary>Update username</summary>
+            <div id="usernameError" class="alert error hidden"></div>
+            <div id="usernameSuccess" class="alert success hidden"></div>
+            <form id="changeUsernameForm" class="stack">
+                <label>
+                    <span>New username</span>
+                    <input type="text" id="newUsername" name="newUsername" required>
+                    <small class="form-hint">Username must be unique and at least 3 characters.</small>
+                </label>
+                <button type="submit" class="button button-primary">Update username</button>
+            </form>
+        </details>
+
+        <details class="account-item" id="panel-delete">
+            <summary>Delete account</summary>
+            <div id="deleteError" class="alert error hidden"></div>
+            <div class="warning-box">
+                <h3>Warning: this action is permanent</h3>
+                <p>Deleting your account will permanently remove your account details and all events.</p>
+            </div>
+            <form id="deleteAccountForm" class="stack">
+                <label>
+                    <span>Enter password to confirm deletion</span>
+                    <input type="password" id="confirmDeletePassword" name="confirmDeletePassword" required autocomplete="current-password">
+                </label>
+                <button type="submit" class="button button-danger">Delete account</button>
+            </form>
+        </details>
     </section>
 
     <!-- Event detail modal -->
@@ -215,44 +323,31 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     updateMonthYearDisplay();
 
-    // Initialize Flatpickr for modern date picker
-    const eventDatePicker = document.getElementById('eventDatePicker');
-    if (eventDatePicker) {
-        flatpickr('#eventDatePicker', {
-            dateFormat: 'Y-m-d',
-            minDate: 'today',
-            theme: savedTheme === 'dark' ? 'dark' : 'light'
-        });
-    }
+    // Initialize Flatpickr for both create and edit event forms
+    ['#eventDatePicker', '#eventDatePickerEdit'].forEach((selector) => {
+        if (document.querySelector(selector)) {
+            flatpickr(selector, {
+                dateFormat: 'Y-m-d',
+                minDate: 'today',
+                theme: savedTheme === 'dark' ? 'dark' : 'light'
+            });
+        }
+    });
 
-    // Initialize Flatpickr for time pickers
-    const startTimePicker = document.getElementById('startTimePicker');
-    if (startTimePicker) {
-        flatpickr('#startTimePicker', {
-            enableTime: true,
-            noCalendar: true,
+    ['#startTimePicker', '#startTimePickerEdit', '#endTimePicker', '#endTimePickerEdit'].forEach((selector) => {
+        if (document.querySelector(selector)) {
+            flatpickr(selector, {
+                enableTime: true,
+                noCalendar: true,
                 enableSeconds: false,
                 dateFormat: 'H:i',
                 altInput: true,
                 altFormat: 'h:i K',
                 time_24hr: false,
-            theme: savedTheme === 'dark' ? 'dark' : 'light'
-        });
-    }
-
-    const endTimePicker = document.getElementById('endTimePicker');
-    if (endTimePicker) {
-        flatpickr('#endTimePicker', {
-            enableTime: true,
-            noCalendar: true,
-                enableSeconds: false,
-                dateFormat: 'H:i',
-                altInput: true,
-                altFormat: 'h:i K',
-                time_24hr: false,
-            theme: savedTheme === 'dark' ? 'dark' : 'light'
-        });
-    }
+                theme: savedTheme === 'dark' ? 'dark' : 'light'
+            });
+        }
+    });
 
     // Hamburger drawer functionality
     const hamburgerMenuBtn = document.getElementById('hamburger-menu-btn');
@@ -307,30 +402,366 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Change password button
     const changePasswordBtn = document.getElementById('change-password-btn');
-    if (changePasswordBtn) {
-        changePasswordBtn.addEventListener('click', () => {
-            closeHamburgerMenu();
-            window.location.href = '/account/change-password';
-        });
-    }
-
-    // Change username button
     const changeUsernameBtn = document.getElementById('change-username-btn');
-    if (changeUsernameBtn) {
-        changeUsernameBtn.addEventListener('click', () => {
-            closeHamburgerMenu();
-            window.location.href = '/account/change-username';
-        });
-    }
+    const viewDashboardBtn = document.getElementById('view-dashboard-btn');
+    const viewAccountBtn = document.getElementById('view-account-btn');
 
     // Delete account button
     const deleteAccountFromMenuBtn = document.getElementById('delete-account-from-menu-btn');
+    const hamburgerItems = [
+        viewDashboardBtn,
+        viewAccountBtn,
+        changePasswordBtn,
+        changeUsernameBtn,
+        deleteAccountFromMenuBtn
+    ].filter(Boolean);
+
+    function setActiveHamburgerItem(activeButton) {
+        hamburgerItems.forEach((button) => {
+            button.classList.toggle('active', button === activeButton);
+        });
+    }
+
     if (deleteAccountFromMenuBtn) {
         deleteAccountFromMenuBtn.addEventListener('click', () => {
             closeHamburgerMenu();
-            window.location.href = '/account/delete';
+            showOnlySection('account');
+            openAccountPanel('delete');
+            setActiveHamburgerItem(deleteAccountFromMenuBtn);
+        });
+    }
+
+    const dashboardGrid = document.getElementById('dashboardGrid');
+    const eventEditorSection = document.getElementById('eventEditorSection');
+    const calendarSection = document.getElementById('calendarSection');
+    const accountSection = document.getElementById('accountSection');
+
+    const sectionMap = {
+        dashboard: [eventEditorSection, calendarSection],
+        account: [accountSection]
+    };
+
+    const accountPanelMap = {
+        password: 'panel-password',
+        username: 'panel-username',
+        delete: 'panel-delete'
+    };
+
+    const accountPanelIds = Object.values(accountPanelMap);
+
+    function showOnlySection(sectionKey) {
+        Object.values(sectionMap).flat().forEach((section) => {
+            if (section) {
+                section.classList.add('section-hidden');
+            }
+        });
+
+        const selectedSections = sectionMap[sectionKey] || [];
+        selectedSections.forEach((section) => {
+            section.classList.remove('section-hidden');
+        });
+
+        const firstVisible = selectedSections[0];
+        if (firstVisible) {
+            firstVisible.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        if (dashboardGrid) {
+            const showGrid = sectionKey === 'dashboard';
+            dashboardGrid.classList.toggle('single-visible-section', showGrid);
+        }
+    }
+
+    function openAccountPanel(panelKey) {
+        const panelId = accountPanelMap[panelKey];
+        if (!panelId) {
+            return;
+        }
+
+        accountPanelIds.forEach((id) => {
+            const details = document.getElementById(id);
+            if (!details) {
+                return;
+            }
+            details.classList.add('section-hidden');
+            details.open = id === panelId;
+        });
+
+        const activePanel = document.getElementById(panelId);
+        if (activePanel) {
+            activePanel.classList.remove('section-hidden');
+        }
+
+        if (accountSection) {
+            accountSection.classList.remove('section-hidden');
+        }
+    }
+
+    if (viewDashboardBtn) {
+        viewDashboardBtn.addEventListener('click', () => {
+            closeHamburgerMenu();
+            showOnlySection('dashboard');
+            setActiveHamburgerItem(viewDashboardBtn);
+        });
+    }
+
+    if (viewAccountBtn) {
+        viewAccountBtn.addEventListener('click', () => {
+            closeHamburgerMenu();
+            showOnlySection('account');
+            openAccountPanel('password');
+            setActiveHamburgerItem(viewAccountBtn);
+        });
+    }
+
+    // Account panel deep links from query-string controlled server state
+    const activePanelValue = document.getElementById('activePanel')?.value;
+    if (activePanelValue && accountPanelMap[activePanelValue]) {
+        showOnlySection('account');
+        openAccountPanel(activePanelValue);
+        if (activePanelValue === 'password' && changePasswordBtn) {
+            setActiveHamburgerItem(changePasswordBtn);
+        } else if (activePanelValue === 'username' && changeUsernameBtn) {
+            setActiveHamburgerItem(changeUsernameBtn);
+        } else if (activePanelValue === 'delete' && deleteAccountFromMenuBtn) {
+            setActiveHamburgerItem(deleteAccountFromMenuBtn);
+        }
+    } else {
+        // Default state keeps dashboard (event form + calendar) visible.
+        showOnlySection('dashboard');
+        if (viewDashboardBtn) {
+            setActiveHamburgerItem(viewDashboardBtn);
+        }
+        accountPanelIds.forEach((id) => {
+            const panel = document.getElementById(id);
+            if (panel) {
+                panel.classList.add('section-hidden');
+                panel.open = false;
+            }
+        });
+    }
+
+    const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfHeaderMeta = document.querySelector('meta[name="csrf-header"]');
+
+    const buildJsonHeaders = () => {
+        if (!csrfTokenMeta || !csrfHeaderMeta) {
+            return null;
+        }
+        const headers = { 'Content-Type': 'application/json' };
+        headers[csrfHeaderMeta.getAttribute('content')] = csrfTokenMeta.getAttribute('content');
+        return headers;
+    };
+
+    // Change password form
+    const changePasswordForm = document.getElementById('changePasswordForm');
+    const currentPasswordInput = document.getElementById('currentPassword');
+    const newPasswordInput = document.getElementById('newPassword');
+    const confirmPasswordInput = document.getElementById('confirmPassword');
+    const passwordError = document.getElementById('passwordError');
+    const passwordSuccess = document.getElementById('passwordSuccess');
+    const changeStrengthFill = document.getElementById('changePasswordStrengthFill');
+    const changeStrengthLabel = document.getElementById('changePasswordStrengthLabel');
+
+    const updateChangePasswordStrength = (password) => {
+        if (!changeStrengthFill || !changeStrengthLabel) {
+            return;
+        }
+
+        if (!password) {
+            changeStrengthFill.style.width = '0%';
+            changeStrengthFill.className = 'password-strength-fill';
+            changeStrengthLabel.textContent = 'Password strength: --';
+            return;
+        }
+
+        const hasUpper = /[A-Z]/.test(password);
+        const hasSpecial = /[^A-Za-z0-9]/.test(password);
+        const hasLower = /[a-z]/.test(password);
+        const hasDigit = /\d/.test(password);
+        const hasSpaces = /\s/.test(password);
+        const meetsMinimum = password.length >= 8 && hasUpper && hasSpecial && !hasSpaces;
+
+        let level = 'weak';
+        if (meetsMinimum) {
+            level = (password.length >= 12 && hasLower && hasDigit) ? 'extra-strong' : 'strong';
+        }
+
+        if (level === 'weak') {
+            changeStrengthFill.style.width = '34%';
+            changeStrengthFill.className = 'password-strength-fill weak';
+            changeStrengthLabel.textContent = 'Password strength: Weak';
+        } else if (level === 'strong') {
+            changeStrengthFill.style.width = '67%';
+            changeStrengthFill.className = 'password-strength-fill strong';
+            changeStrengthLabel.textContent = 'Password strength: Strong';
+        } else {
+            changeStrengthFill.style.width = '100%';
+            changeStrengthFill.className = 'password-strength-fill extra-strong';
+            changeStrengthLabel.textContent = 'Password strength: Extra strong';
+        }
+    };
+
+    if (newPasswordInput) {
+        newPasswordInput.addEventListener('input', (e) => updateChangePasswordStrength(e.target.value));
+        updateChangePasswordStrength(newPasswordInput.value || '');
+    }
+
+    if (changePasswordForm) {
+        changePasswordForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (passwordError) passwordError.classList.add('hidden');
+            if (passwordSuccess) passwordSuccess.classList.add('hidden');
+
+            if (newPasswordInput.value !== confirmPasswordInput.value) {
+                passwordError.textContent = 'New passwords do not match. Please try again.';
+                passwordError.classList.remove('hidden');
+                return;
+            }
+
+            if (newPasswordInput.value.length < 8 || /\s/.test(newPasswordInput.value)
+                    || !/[A-Z]/.test(newPasswordInput.value)
+                    || !/[^A-Za-z0-9]/.test(newPasswordInput.value)) {
+                passwordError.textContent = 'Password must be 8+ chars with one uppercase and one special character, and no spaces.';
+                passwordError.classList.remove('hidden');
+                return;
+            }
+
+            const headers = buildJsonHeaders();
+            if (!headers) {
+                passwordError.textContent = 'Security token not found. Please refresh the page.';
+                passwordError.classList.remove('hidden');
+                return;
+            }
+
+            fetch('/account/change-password', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({
+                    currentPassword: currentPasswordInput.value,
+                    newPassword: newPasswordInput.value
+                })
+            }).then((response) => {
+                if (response.ok) {
+                    passwordSuccess.textContent = 'Password changed successfully.';
+                    passwordSuccess.classList.remove('hidden');
+                    changePasswordForm.reset();
+                    updateChangePasswordStrength('');
+                } else if (response.status === 401) {
+                    passwordError.textContent = 'Current password is incorrect. Please try again.';
+                    passwordError.classList.remove('hidden');
+                } else {
+                    passwordError.textContent = 'Failed to change password. Please try again.';
+                    passwordError.classList.remove('hidden');
+                }
+            }).catch(() => {
+                passwordError.textContent = 'Failed to change password. Please try again.';
+                passwordError.classList.remove('hidden');
+            });
+        });
+    }
+
+    // Change username form
+    const changeUsernameForm = document.getElementById('changeUsernameForm');
+    const newUsernameInput = document.getElementById('newUsername');
+    const usernameError = document.getElementById('usernameError');
+    const usernameSuccess = document.getElementById('usernameSuccess');
+
+    if (changeUsernameForm) {
+        changeUsernameForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            usernameError.classList.add('hidden');
+            usernameSuccess.classList.add('hidden');
+
+            const headers = buildJsonHeaders();
+            if (!headers) {
+                usernameError.textContent = 'Security token not found. Please refresh the page.';
+                usernameError.classList.remove('hidden');
+                return;
+            }
+
+            fetch('/account/change-username', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({ newUsername: newUsernameInput.value })
+            }).then((response) => {
+                if (response.ok) {
+                    usernameSuccess.textContent = 'Username updated. Please sign in again.';
+                    usernameSuccess.classList.remove('hidden');
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 1500);
+                } else if (response.status === 400) {
+                    return response.text().then((text) => {
+                        usernameError.textContent = text || 'Invalid username. Please try another.';
+                        usernameError.classList.remove('hidden');
+                    });
+                } else {
+                    usernameError.textContent = 'Failed to update username. Please try again.';
+                    usernameError.classList.remove('hidden');
+                }
+            }).catch(() => {
+                usernameError.textContent = 'Failed to update username. Please try again.';
+                usernameError.classList.remove('hidden');
+            });
+        });
+    }
+
+    // Delete account form
+    const deleteAccountForm = document.getElementById('deleteAccountForm');
+    const confirmDeletePasswordInput = document.getElementById('confirmDeletePassword');
+    const deleteError = document.getElementById('deleteError');
+
+    if (deleteAccountForm) {
+        deleteAccountForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            deleteError.classList.add('hidden');
+
+            const headers = buildJsonHeaders();
+            if (!headers) {
+                deleteError.textContent = 'Security token not found. Please refresh the page.';
+                deleteError.classList.remove('hidden');
+                return;
+            }
+
+            fetch('/account/delete', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({ password: confirmDeletePasswordInput.value })
+            }).then((response) => {
+                if (response.ok) {
+                    window.location.href = '/login';
+                } else if (response.status === 401) {
+                    deleteError.textContent = 'Invalid password. Please try again.';
+                    deleteError.classList.remove('hidden');
+                } else {
+                    deleteError.textContent = 'Failed to delete account. Please try again.';
+                    deleteError.classList.remove('hidden');
+                }
+            }).catch(() => {
+                deleteError.textContent = 'Failed to delete account. Please try again.';
+                deleteError.classList.remove('hidden');
+            });
+        });
+    }
+
+    // Wire account quick actions after helpers are defined.
+    if (changePasswordBtn) {
+        changePasswordBtn.addEventListener('click', () => {
+            closeHamburgerMenu();
+            showOnlySection('account');
+            openAccountPanel('password');
+            setActiveHamburgerItem(changePasswordBtn);
+        });
+    }
+
+    if (changeUsernameBtn) {
+        changeUsernameBtn.addEventListener('click', () => {
+            closeHamburgerMenu();
+            showOnlySection('account');
+            openAccountPanel('username');
+            setActiveHamburgerItem(changeUsernameBtn);
         });
     }
 
