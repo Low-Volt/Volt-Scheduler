@@ -50,3 +50,40 @@ docker compose up --build
 ```
 
 This starts both the Spring Boot app and PostgreSQL.
+
+## Screenshots
+
+<table>
+   <tr>
+      <td align="center"><strong>Login Page</strong></td>
+      <td align="center"><strong>Register Page</strong></td>
+   </tr>
+   <tr>
+      <td><img src="images/Login-page.png" alt="Login Page" width="100%" /></td>
+      <td><img src="images/Register-page.png" alt="Register Page" width="100%" /></td>
+   </tr>
+   <tr>
+      <td align="center"><strong>Events Page</strong></td>
+      <td align="center"><strong>Change Username Page</strong></td>
+   </tr>
+   <tr>
+      <td><img src="images/Events-page.png" alt="Events Page" width="100%" /></td>
+      <td><img src="images/Change-username-page.png" alt="Change Username Page" width="100%" /></td>
+   </tr>
+   <tr>
+      <td align="center"><strong>Change Password Page</strong></td>
+      <td align="center"><strong>Delete Account Page</strong></td>
+   </tr>
+   <tr>
+      <td><img src="images/Change-password-page.png" alt="Change Password Page" width="100%" /></td>
+      <td><img src="images/Delete-account-page.png" alt="Delete Account Page" width="100%" /></td>
+   </tr>
+   <tr>
+      <td align="center"><strong>Calendar Display</strong></td>
+      <td align="center"><strong>Event Display</strong></td>
+   </tr>
+   <tr>
+      <td><img src="images/Calendar-display.png" alt="Calendar Display" width="100%" /></td>
+      <td><img src="images/Event-display.png" alt="Event Display" width="100%" /></td>
+   </tr>
+</table>
