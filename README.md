@@ -51,6 +51,11 @@ docker compose up --build
 
 This starts both the Spring Boot app and PostgreSQL.
 
+## Deploy to your own domain
+
+Use the production guide in `DEPLOYMENT.md` to deploy this app to a subdomain like `calendar.yourdomain.com` with HTTPS.
+For Azure deployment, use `deployment/azure/AZURE_DEPLOYMENT.md`.
+
 ## Screenshots
 
 <table>
