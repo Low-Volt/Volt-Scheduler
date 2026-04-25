@@ -93,9 +93,3 @@ Add a button/link on your portfolio site:
 - This setup does not expose PostgreSQL publicly.
 - Caddy auto-renews certificates.
 - Ensure ports `80` and `443` are open in your VPS firewall.
-
-## Azure Option
-
-If you want Azure hosting, use:
-- `deployment/azure/AZURE_DEPLOYMENT.md`
-- `deployment/azure/deploy-appservice.ps1`
