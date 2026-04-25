@@ -46,6 +46,7 @@
 <div class="page-gradient"></div>
 <main class="dashboard-layout">
     <input type="hidden" id="activePanel" th:value="${activePanel ?: 'events'}">
+    <input type="hidden" id="contextPathBase" th:value="@{/}">
     <header class="hero card">
         <div>
             <p class="eyebrow">Volt Scheduler</p>
@@ -265,7 +266,7 @@
 
 <script th:inline="javascript">
 /*<![CDATA[*/
-var contextPath = [[${#request.contextPath}]];
+var contextPath = document.getElementById('contextPathBase').value.replace(/\/$/, '');
 var eventsData = [
 /*[# th:each="ev : ${events}"]*/{
     id: [[${ev.id}]],
