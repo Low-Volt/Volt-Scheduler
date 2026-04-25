@@ -265,6 +265,7 @@
 
 <script th:inline="javascript">
 /*<![CDATA[*/
+var contextPath = [[${#request.contextPath}]];
 var eventsData = [
 /*[# th:each="ev : ${events}"]*/{
     id: [[${ev.id}]],
@@ -867,8 +868,8 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             descEl.style.display = 'none';
         }
-        document.getElementById('detailEditBtn').href = '/events/' + ev.id + '/edit';
-        document.getElementById('detailDeleteForm').action = '/events/' + ev.id + '/delete';
+        document.getElementById('detailEditBtn').href = contextPath + '/events/' + ev.id + '/edit';
+        document.getElementById('detailDeleteForm').action = contextPath + '/events/' + ev.id + '/delete';
         document.getElementById('detailCsrfToken').value =
             document.querySelector('meta[name="csrf-token"]').content;
         eventDetailBackdrop.classList.remove('hidden');
