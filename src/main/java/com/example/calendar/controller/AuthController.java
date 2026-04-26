@@ -133,12 +133,15 @@ public class AuthController {
         try {
             String currentUsername = principal.getName();
             // Changing the username updates the users table, then the current security session is reset.
-            userService.changeUsername(currentUsername, request.getNewUsername());
+            userService.changeUsername(currentUsername, request.getCurrentPassword(), request.getNewUsername());
             // Username changed: refresh auth state by logging out current session.
             new SecurityContextLogoutHandler().logout(httpRequest, httpResponse, authentication);
             return ResponseEntity.ok("Username changed successfully");
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+            HttpStatus status = "Current password is incorrect".equals(e.getMessage())
+                    ? HttpStatus.UNAUTHORIZED
+                    : HttpStatus.BAD_REQUEST;
+            return ResponseEntity.status(status).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to change username");
         }
@@ -220,7 +223,16 @@ public class AuthController {
     }
 
     public static class ChangeUsernameRequest {
+        private String currentPassword;
         private String newUsername;
+
+        public String getCurrentPassword() {
+            return currentPassword;
+        }
+
+        public void setCurrentPassword(String currentPassword) {
+            this.currentPassword = currentPassword;
+        }
 
         public String getNewUsername() {
             return newUsername;

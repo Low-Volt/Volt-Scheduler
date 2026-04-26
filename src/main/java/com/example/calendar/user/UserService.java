@@ -86,12 +86,21 @@ public class UserService {
     }
 
     @Transactional
-    public void changeUsername(String oldUsername, String newUsername) {
+    public void changeUsername(String oldUsername, String currentPassword, String newUsername) {
+        if (newUsername == null || newUsername.trim().length() < 3) {
+            throw new IllegalArgumentException("Username must be at least 3 characters.");
+        }
+
         if (usernameExists(newUsername)) {
             throw new IllegalArgumentException("Username is already taken");
         }
         
         UserAccount user = getByUsername(oldUsername);
+
+        if (currentPassword == null || !passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new IllegalArgumentException("Current password is incorrect");
+        }
+
         user.setUsername(newUsername.trim());
         // This becomes an UPDATE on the users table.
         userAccountRepository.save(user);

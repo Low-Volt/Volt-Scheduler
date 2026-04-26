@@ -215,6 +215,10 @@
             <div id="usernameSuccess" class="alert success hidden"></div>
             <form id="changeUsernameForm" class="stack">
                 <label>
+                    <span>Current password</span>
+                    <input type="password" id="usernameCurrentPassword" name="usernameCurrentPassword" required autocomplete="current-password">
+                </label>
+                <label>
                     <span>New username</span>
                     <input type="text" id="newUsername" name="newUsername" required>
                     <small class="form-hint">Username must be unique and at least 3 characters.</small>
@@ -264,6 +268,12 @@
     <p>&copy; <span id="footerYear"></span> Elijah Richter. All rights reserved.</p>
 </footer>
 
+<div class="custom-scrollbar" id="customScrollbar" aria-hidden="true">
+    <div class="custom-scrollbar-track" id="customScrollbarTrack">
+        <div class="custom-scrollbar-thumb" id="customScrollbarThumb"></div>
+    </div>
+</div>
+
 <script th:inline="javascript">
 /*<![CDATA[*/
 var contextPath = document.getElementById('contextPathBase').value.replace(/\/$/, '');
@@ -282,6 +292,7 @@ var eventsData = [
 </script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/index.js"></script>
+<script th:src="@{/js/custom-scrollbar.js}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Theme toggle functionality
@@ -312,6 +323,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Footer year
     const footerYear = document.getElementById('footerYear');
     if (footerYear) footerYear.textContent = new Date().getFullYear();
+
+    if (typeof initCustomScrollbar === 'function') {
+        initCustomScrollbar();
+    }
 
     // Update month and year display
     function updateMonthYearDisplay() {
@@ -637,7 +652,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            fetch('/account/change-password', {
+            fetch(`${contextPath}/account/change-password`, {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify({
@@ -666,6 +681,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Change username form
     const changeUsernameForm = document.getElementById('changeUsernameForm');
+    const usernameCurrentPasswordInput = document.getElementById('usernameCurrentPassword');
     const newUsernameInput = document.getElementById('newUsername');
     const usernameError = document.getElementById('usernameError');
     const usernameSuccess = document.getElementById('usernameSuccess');
@@ -683,17 +699,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            fetch('/account/change-username', {
+            fetch(`${contextPath}/account/change-username`, {
                 method: 'POST',
                 headers: headers,
-                body: JSON.stringify({ newUsername: newUsernameInput.value })
+                body: JSON.stringify({
+                    newUsername: newUsernameInput.value,
+                    currentPassword: usernameCurrentPasswordInput ? usernameCurrentPasswordInput.value : ''
+                })
             }).then((response) => {
                 if (response.ok) {
                     usernameSuccess.textContent = 'Username updated. Please sign in again.';
                     usernameSuccess.classList.remove('hidden');
                     setTimeout(() => {
-                        window.location.href = '/login';
+                        window.location.href = `${contextPath}/login`;
                     }, 1500);
+                } else if (response.status === 401) {
+                    usernameError.textContent = 'Current password is incorrect. Please try again.';
+                    usernameError.classList.remove('hidden');
                 } else if (response.status === 400) {
                     return response.text().then((text) => {
                         usernameError.textContent = text || 'Invalid username. Please try another.';
@@ -727,13 +749,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            fetch('/account/delete', {
+            fetch(`${contextPath}/account/delete`, {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify({ password: confirmDeletePasswordInput.value })
             }).then((response) => {
                 if (response.ok) {
-                    window.location.href = '/login';
+                    window.location.href = `${contextPath}/login`;
                 } else if (response.status === 401) {
                     deleteError.textContent = 'Invalid password. Please try again.';
                     deleteError.classList.remove('hidden');

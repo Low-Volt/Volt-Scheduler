@@ -97,6 +97,13 @@
     <p>&copy; <script>document.write(new Date().getFullYear())</script> Elijah Richter. All rights reserved.</p>
 </footer>
 
+<div class="custom-scrollbar" id="customScrollbar" aria-hidden="true">
+    <div class="custom-scrollbar-track" id="customScrollbarTrack">
+        <div class="custom-scrollbar-thumb" id="customScrollbarThumb"></div>
+    </div>
+</div>
+
+<script th:src="@{/js/custom-scrollbar.js}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Theme toggle functionality
@@ -123,6 +130,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize theme icon
     const savedTheme = localStorage.getItem('theme') || 'light';
     updateThemeIcon(savedTheme);
+
+    if (typeof initCustomScrollbar === 'function') {
+        initCustomScrollbar();
+    }
 
     // Password strength indicator for register view
     const registerPassword = document.getElementById('registerPassword');
@@ -173,5 +184,6 @@ document.addEventListener('DOMContentLoaded', function() {
         updatePasswordStrength(registerPassword.value || '');
     }
 });
-</script></body>
+</script>
+</body>
 </html>
