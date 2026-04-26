@@ -38,15 +38,6 @@
             <h2>Welcome to Volt Scheduler</h2>
         </div>
 
-        <div class="auth-switch" role="tablist" aria-label="Authentication views">
-            <a class="button button-secondary auth-switch-button"
-               th:classappend="${authView == 'login'} ? ' active'"
-               th:href="@{/login}">Sign in</a>
-            <a class="button button-secondary auth-switch-button"
-               th:classappend="${authView == 'register'} ? ' active'"
-               th:href="@{/login(view='register')}">Register</a>
-        </div>
-
         <p class="alert success" th:if="${successMessage}" th:text="${successMessage}"></p>
         <p class="alert success" th:if="${param.logout}">You have been signed out.</p>
         <p class="alert error" th:if="${param.error}">Invalid username or password.</p>
