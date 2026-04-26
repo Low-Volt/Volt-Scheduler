@@ -708,11 +708,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
             }).then((response) => {
                 if (response.ok) {
-                    usernameSuccess.textContent = 'Username updated. Please sign in again.';
+                    usernameSuccess.textContent = 'Username updated successfully.';
                     usernameSuccess.classList.remove('hidden');
                     setTimeout(() => {
-                        window.location.href = `${contextPath}/login`;
-                    }, 1500);
+                        window.location.href = `${contextPath}/events?panel=username`;
+                    }, 900);
                 } else if (response.status === 401) {
                     usernameError.textContent = 'Current password is incorrect. Please try again.';
                     usernameError.classList.remove('hidden');

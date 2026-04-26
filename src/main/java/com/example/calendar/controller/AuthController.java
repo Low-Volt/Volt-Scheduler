@@ -9,7 +9,9 @@ import java.security.Principal;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -128,14 +130,22 @@ public class AuthController {
     public ResponseEntity<String> changeUsername(@RequestBody ChangeUsernameRequest request,
                                                  Principal principal,
                                                  Authentication authentication,
-                                                 HttpServletRequest httpRequest,
-                                                 HttpServletResponse httpResponse) {
+                             HttpServletRequest httpRequest,
+                             HttpServletResponse httpResponse) {
         try {
             String currentUsername = principal.getName();
             // Changing the username updates the users table, then the current security session is reset.
             userService.changeUsername(currentUsername, request.getCurrentPassword(), request.getNewUsername());
-            // Username changed: refresh auth state by logging out current session.
-            new SecurityContextLogoutHandler().logout(httpRequest, httpResponse, authentication);
+
+            String updatedUsername = request.getNewUsername().trim();
+            Authentication updatedAuthentication = new UsernamePasswordAuthenticationToken(
+                updatedUsername,
+                authentication.getCredentials(),
+                authentication.getAuthorities()
+            );
+            ((UsernamePasswordAuthenticationToken) updatedAuthentication).setDetails(authentication.getDetails());
+            SecurityContextHolder.getContext().setAuthentication(updatedAuthentication);
+
             return ResponseEntity.ok("Username changed successfully");
         } catch (IllegalArgumentException e) {
             HttpStatus status = "Current password is incorrect".equals(e.getMessage())
