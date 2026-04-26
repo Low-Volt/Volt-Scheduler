@@ -19,7 +19,7 @@
 <body class="dashboard-shell" th:attr="data-theme=${session.theme ?: 'light'}">
 <div class="theme-toggle-wrapper">
     <button id="theme-toggle" class="button button-icon theme-toggle-floating" title="Toggle dark mode">
-        <span id="theme-icon">☽</span>
+        <span id="theme-icon">☾</span>
     </button>
 </div>
 <div class="hamburger-fixed-wrapper">
@@ -301,7 +301,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateThemeIcon(theme) {
         if (themeIcon) {
-            themeIcon.textContent = theme === 'dark' ? '☀' : '☽';
+            themeIcon.textContent = theme === 'dark' ? '☀' : '☾';
         }
     }
 
