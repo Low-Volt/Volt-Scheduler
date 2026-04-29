@@ -1,6 +1,7 @@
 package com.example.calendar.config;
 
 import javax.sql.DataSource;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,6 +19,9 @@ import org.springframework.security.web.authentication.rememberme.PersistentToke
 public class SecurityConfig {
 
     private static final int REMEMBER_ME_SECONDS = 24 * 60 * 60;
+
+    @Value("${app.remember-me.key:change-this-in-production}")
+    private String rememberMeKey;
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http,
@@ -37,7 +41,7 @@ public class SecurityConfig {
                         .tokenValiditySeconds(REMEMBER_ME_SECONDS)
                         .tokenRepository(persistentTokenRepository)
                         .userDetailsService(userDetailsService)
-                        .key("volt-scheduler-remember-me-v1"))
+                        .key(rememberMeKey))
                 .logout(logout -> logout
                         .deleteCookies("JSESSIONID", "remember-me")
                         .logoutSuccessUrl("/login?logout")
