@@ -1,8 +1,8 @@
-# Calendar App
+# Volt Scheduler
 
 **Live app:** [low-voltage.xyz/scheduler](https://low-voltage.xyz/scheduler)
 
-This project is a full stack Java calendar application built with Spring Boot, Thymeleaf, PostgreSQL, and Docker Compose.
+A full-stack Java scheduling application built with Spring Boot, Thymeleaf, PostgreSQL, and Docker Compose.
 
 ## Features
 
@@ -22,6 +22,12 @@ This project is a full stack Java calendar application built with Spring Boot, T
 - Thymeleaf
 - PostgreSQL
 - Docker Compose
+
+## Prerequisites
+
+- Java 25
+- Maven
+- Docker (for the database or full-stack run)
 
 ## Run locally with Maven
 
@@ -43,6 +49,7 @@ The application uses these default database settings unless overridden with envi
 
 - `SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/calendar_app`
 - `SPRING_DATASOURCE_USERNAME=calendar_user`
+- `SPRING_DATASOURCE_PASSWORD=calendar_pass`
 
 > **Warning:** The default credentials are for local development only. Always override `SPRING_DATASOURCE_USERNAME` and `SPRING_DATASOURCE_PASSWORD` with strong values before deploying to any public environment.
 
@@ -94,3 +101,7 @@ Use the production guide in `DEPLOYMENT.md` to deploy this app to a subdomain li
       <td><img src="images/Event-display.png" alt="Event Display" width="100%" /></td>
    </tr>
 </table>
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
